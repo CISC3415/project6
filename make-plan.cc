@@ -120,7 +120,6 @@ int main(int argc, char *argv[])
   printPlan(plan,pLength);    // Print the plan on the screen
   writePlan(plan, pLength);   // Write the plan to the file plan-out.txt
 
-  
   // Main control loop
   while(true) 
     {    
@@ -251,7 +250,7 @@ player_pose2d_t readPosition(LocalizeProxy& lp)
 
   player_localize_hypoth_t hypothesis;
   player_pose2d_t          pose;
-  uintSIZE_t                 hCount;
+  uint32_t                 hCount;
 
   // Need some messing around to avoid a crash when the proxy is
   // starting up.
@@ -419,7 +418,7 @@ void writePlan(double *plan , int length)
 
 void pathOut(int path[][2], int pathlength) {
   std::ofstream os;
-  os.open("plan-out.txt");
+  os.open("plan.txt");
   os << pathlength << " ";
   for (int i = 0; i < pathlength; i++) {
     os << (double)path[i][0]/2 << " " << (double)path[i][1]/2 << (i == pathlength-1 ? "" : " ");
