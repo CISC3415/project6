@@ -1,17 +1,35 @@
-/**
- * make-plan.cc
+/*
+ *  CISC-3415 Robotics
+ *  Project 6
+ *  Credit To: Simon Parsons
+ *
+ ** Group Members *************************************************************
+ *    
+ *  Benjamin Yi
+ *  Emmanuel Desdunes
+ *  Montasir Omi
+ *  Shahzad Ahmad
+ *
+ ** Description ***************************************************************
  * 
- * Sample code for a robot that has two front bumpers and a laser, and
- * which is provided with localization data.
- *
- * The code also allows the controller to read and write a "plan", a sequence
- * of location that the robot should move to and to read in a "map", a matrix
- * of 1 and 0 values that can be used as an occupancy grid.
- *
- * Written by: Simon Parsons
- * Date:       4th December 2011
+ *  Using an occupancy grid, this program first calculates the an optimal route
+ *  from the robot's starting location to the goal, avoiding occupied areas. 
+ *  The optimal path is found via A* search, using the manhattan distance
+ *  heuristic, and creates a map-out.txt file indicating the robot's travel
+ *  plan. After truncating all steps that are in a straight line, the program
+ *  then outputs a plan-out.txt file showing the waypoints of the plan. 
+ *  Using proper proportional control and angle finding, it proceeds to travel
+ *  to each waypoint until the goal coordinate. 
+ * 
+ *  At the top of the program are are some custom data structues:
+ *    struct Node   -- Node representing a coordinate on the map that also
+ *                     contains a pointer to a previous coordinate, required
+ *                     for backtracking.
+ *    class Graph   -- A custom graph class to easily push/pop nodes.
  *  
- **/
+ *  The remaining program has various initialization methods and navigation
+ *  functions.
+ */
 
 
 #include <iostream>
