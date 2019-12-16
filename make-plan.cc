@@ -193,11 +193,16 @@ int main(int argc, char *argv[])
       }
     // Travels until distance is good enough
     } else if (traveling) {
+      targ_x = plan[curr_pos];
+      targ_y = plan[curr_pos+1];
+      targ_a = atan2(targ_y-curr_y, targ_x-curr_x);
+      angle_away = rtod(targ_a)-rtod(curr_a);
       dx = curr_x-targ_x;
       dy = curr_y-targ_y;
       dist_away = sqrt(dx*dx+dy*dy);
       speed = 1.0;
-      turnrate = 0.0;
+      if (angle_away < 0) turnrate = -0.4;
+      else turnrate = 0.4;
       // Stop if distance is close enough
       if (dist_away < 0.1) {
         arrived = 1;
@@ -210,6 +215,7 @@ int main(int argc, char *argv[])
       turnrate = 0.0;
       curr_pos += 2;
       if (curr_pos == pLength) {
+        std::cout << "Success! Arrived at destination!" << std::endl;
         pp.SetSpeed(0, 0);
         break;
       }
@@ -230,7 +236,8 @@ int main(int argc, char *argv[])
     }
     // What are we doing?
     std::cout << "Speed: " << speed << std::endl;      
-    std::cout << "Turn rate: " << turnrate << std::endl << std::endl;
+    std::cout << "Turn rate: " << turnrate << std::endl;
+    std::cout << "Heading to: (" << plan[curr_pos] << ", " << plan[curr_pos+1] << ")\n\n";
 
     // Send the commands to the robot
     pp.SetSpeed(speed, turnrate);  
@@ -495,7 +502,7 @@ void writePlan(double *plan , int length)
 void pathOut(int path[][2], int pathlength) {
   std::ofstream os;
   os.open("plan.txt");
-  os << pathlength << " ";
+  os << pathlength*2 << " ";
   for (int i = 0; i < pathlength; i++) {
     os << (double)path[i][0]/2 << " " << (double)path[i][1]/2 << (i == pathlength-1 ? "" : " ");
   }
