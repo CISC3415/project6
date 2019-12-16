@@ -14,7 +14,7 @@ Graph() : nodes(new Node*[512]), capacity(512), length(0) {}
 void sort() {quicksort(0, length-1);}
 
 void push(int x, int y, double cost, struct Node *n) {
-  struct Node *newnode = (struct Node*) malloc(sizeof(struct Node));
+  struct Node *newnode = new Node;
   newnode->x = x;
   newnode->y = y;
   newnode->cost = cost;

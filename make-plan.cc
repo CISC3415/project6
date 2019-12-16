@@ -34,12 +34,12 @@ const int SIZE = 32; // The number of squares per side of the occupancy grid
  *
  **/
 
-// void fillMap(int maptext[][32]);
-Node* findPath(int path[256][2], int map[32][32], int init[], int goal[]);
+void fillMap(int maptext[][SIZE]);
+Node* findPath(int path[256][2], int map[SIZE][SIZE], int init[], int goal[]);
 double manhattanDistance(int x1, int y1, int x2, int y2);
-void mapOut(int maptext[][32]);
+void mapOut(int maptext[][SIZE]);
 void pathOut(int path[][2], int pathlength);
-void createPath(int map[][32], Node *curr, int path[][2], int &pathlength);
+void createPath(int map[][SIZE], Node *curr, int path[][2], int &pathlength);
 void swapPathNode(int path[][2], int i, int j);
 void truncatePath(int path[][2], int &pathlength);
 
@@ -69,11 +69,12 @@ int main(int argc, char *argv[])
   player_pose2d_t  pose;   // For handling localization data
 
   // The occupancy grid
-
-  int oGrid[SIZE][SIZE];
+ 
+  int map[SIZE][SIZE];
   int path[256][2];
   int pathlength;
-
+  int start[] = {-12, -12};
+  int end[] = {13, 13};
   // The set of coordinates that makes up the plan
 
   int pLength;
@@ -96,15 +97,11 @@ int main(int argc, char *argv[])
   // which is SIZE elements, in which each element is either 1 or 0. A
   // 1 indicates the square is occupied, an 0 indicates that it is
   // free space.
-  readMap(oGrid);   // Read a map in from the file map.txt
-  printMap(oGrid);  // Print the map on the screen
-  // writeMap(oGrid);  // Write a map out to the file map-out.txt
-
-  int start[] = {-12, -12};
-  int end[] = {13, 13};
-  Node *node = findPath(path, oGrid, start, end);
-  createPath(oGrid, node, path, pathlength);
-  mapOut(oGrid);
+  
+  fillMap(map);
+  Node *node = findPath(path, map, start, end);
+  createPath(map, node, path, pathlength);
+  mapOut(map);
   truncatePath(path, pathlength);
   pathOut(path, pathlength);
 
@@ -254,7 +251,7 @@ player_pose2d_t readPosition(LocalizeProxy& lp)
 
   player_localize_hypoth_t hypothesis;
   player_pose2d_t          pose;
-  uint32_t                 hCount;
+  uintSIZE_t                 hCount;
 
   // Need some messing around to avoid a crash when the proxy is
   // starting up.
@@ -463,11 +460,11 @@ void swapPathNode(int path[][2], int i, int j) {
 
 // Outputs map file with path indication
 
-void mapOut(int map[][32]) {
+void mapOut(int map[][SIZE]) {
   std::ofstream ofs;
   ofs.open("map-out.txt");
-  for (int i = 0; i < 32; i++) {
-    for (int j = 0; j < 32; j++) {
+  for (int i = 0; i < SIZE; i++) {
+    for (int j = 0; j < SIZE; j++) {
         ofs << map[i][j] << (j == 31 ? "" : " ");
     }
     if (i < 31) ofs << std::endl;
@@ -476,7 +473,7 @@ void mapOut(int map[][32]) {
 
 // Creates a path by backtracking through nodes
 
-void createPath(int map[][32], Node *curr, int path[][2], int &pathlength) {
+void createPath(int map[][SIZE], Node *curr, int path[][2], int &pathlength) {
   int pl = 0;
   while (curr != NULL) {
     path[pl][0] = curr->x;
@@ -493,7 +490,7 @@ void createPath(int map[][32], Node *curr, int path[][2], int &pathlength) {
 
 // Finds the optimal path produced by A* search
 
-Node* findPath(int path[256][2], int map[32][32], int start[], int end[]) {
+Node* findPath(int path[256][2], int map[SIZE][SIZE], int start[], int end[]) {
   int d[8][2] = {{-1,-1},{0,-1},{1,-1},{0,-1},{0,1},{1,-1},{1,0},{1,1}};
   int newx, newy;
   double cost;
@@ -510,8 +507,8 @@ Node* findPath(int path[256][2], int map[32][32], int start[], int end[]) {
     for (int i = 0; i < 8; i++) {
       newx = node->x+d[i][0];
       newy = node->y+d[i][1];
-      if (newx+16 < 0 || newx+16 >= 32) continue;
-      if (16-newy < 0 || 16-newy >= 32) continue;
+      if (newx+16 < 0 || newx+16 >= SIZE) continue;
+      if (16-newy < 0 || 16-newy >= SIZE) continue;
       if (map[16-newy][16+newx] == 1) continue;
       cost = (node->cost) + 1 + manhattanDistance(newx, newy, end[0], end[1]);
       frontier.push(newx, newy, cost, node);
@@ -530,4 +527,25 @@ double manhattanDistance(int x1, int y1, int x2, int y2) {
   return dx+dy;
 }
 
+// Fill the map array using map.txt
 
+void fillMap(int maptext[][SIZE]) {
+  int row = 0, col = 0, iter = 0;
+  std::ifstream is;
+  is.open("map.txt");
+  std::string line;
+  while (!is.eof()) {
+    getline(is, line);
+    col = 0;
+    iter = 0;
+    while (line[iter] != '\0') {
+      if (line[iter] == '0' || line[iter] == '1') {
+        maptext[row][col] = line[iter] - '0';
+        col++;
+      }
+      iter++;
+    }
+    row++;
+  }
+  is.close();
+}
