@@ -67,6 +67,15 @@ int main(int argc, char *argv[])
   double speed;            // How fast do we want the robot to go forwards?
   double turnrate;         // How fast do we want the robot to turn?
   player_pose2d_t  pose;   // For handling localization data
+  
+  // Navgiation
+  int curr_pos = 0;
+  int started = 1, arrived = 0, bumped = 0;
+  int finding_angle = 0, traveling = 0;
+  double curr_x, curr_y, curr_a;
+  double targ_x=0, targ_y=0, targ_a=0;
+  int turn_sign = 1;
+  double angle_away, dist_away, dx, dy;
 
   // The occupancy grid
  
@@ -121,44 +130,111 @@ int main(int argc, char *argv[])
   writePlan(plan, pLength);   // Write the plan to the file plan-out.txt
 
   // Main control loop
-  while(true) 
-    {    
-      // Update information from the robot.
-      robot.Read();
-      // Read new information about position
-      pose = readPosition(lp);
-      // Print data on the robot to the terminal
-      printRobotData(bp, pose);
-      // Print information about the laser. Check the counter first to stop
-      // problems on startup
-      if(counter > 2){
-	printLaserData(sp);
-      }
-
-      // Print data on the robot to the terminal --- turned off for now.
-      // printRobotData(bp, pose);
-      
-      // If either bumper is pressed, stop. Otherwise just go forwards
-
-      if(bp[0] || bp[1]){
-	speed= 0;
-	turnrate= 0;
-      } 
-      else {
-	speed=.1;
-        turnrate = 0;
-      }     
-
-      // What are we doing?
-      std::cout << "Speed: " << speed << std::endl;      
-      std::cout << "Turn rate: " << turnrate << std::endl << std::endl;
-
-      // Send the commands to the robot
-      pp.SetSpeed(speed, turnrate);  
-      // Count how many times we do this
-      counter++;
+  while(true) {    
+    // Update information from the robot.
+    robot.Read();
+    // Read new information about position
+    pose = readPosition(lp);
+    // Print data on the robot to the terminal
+    // printRobotData(bp, pose);
+    // Print information about the laser. Check the counter first to stop
+    // problems on startup
+    if(counter > 2){
+      printLaserData(sp);
     }
-  
+
+    // Print data on the robot to the terminal --- turned off for now.
+    // printRobotData(bp, pose);
+    
+    // Current position data
+    curr_x = pose.px;
+    curr_y = pose.py;
+    curr_a = pose.pa;
+    
+    // Backs up if bumped until safe, and begins scanning for next angle
+    if (bumped) {
+      if (counter < 15) {
+        speed = -0.5;
+      } else if (counter < 25) {
+        speed = 0.5;
+      } else if (counter < 40) {
+        turnrate = 0.0;
+      } else {
+        counter = 0;
+        bumped = 0;
+        speed = 0;
+        finding_angle = 1;
+        traveling = 0;
+        arrived = 0;
+        turnrate = 0.0;
+      }
+      std::cout << counter << std::endl;
+      counter++;
+    // Finds angle required to go to the next point in the plan
+    } else if (finding_angle) {
+      // Data on the next position
+      targ_x = plan[curr_pos];
+      targ_y = plan[curr_pos+1];
+      targ_a = atan2(targ_y-curr_y, targ_x-curr_x);
+      angle_away = rtod(targ_a)-rtod(curr_a);
+      
+      // If the angle is good enough, start traveling
+      if (abs(angle_away) < 2) {
+        turnrate = 0;
+        speed = 1.0;
+        finding_angle = 0;
+        traveling = 1;
+      } else {
+        // If the angle is not good enough, keep adjusting.
+        std::cout << "Angle Away: " << angle_away << std::endl; 
+        if (angle_away < 0) turnrate = -0.4;
+        else turnrate = 0.4;
+        speed = 0;
+      }
+    // Travels until distance is good enough
+    } else if (traveling) {
+      dx = curr_x-targ_x;
+      dy = curr_y-targ_y;
+      dist_away = sqrt(dx*dx+dy*dy);
+      speed = 1.0;
+      turnrate = 0.0;
+      // Stop if distance is close enough
+      if (dist_away < 0.1) {
+        arrived = 1;
+        speed = 0;
+        traveling = 0;
+      }
+    // If arrived at correct location, start finding the next location
+    } else if (arrived) {
+      speed = 0.0;
+      turnrate = 0.0;
+      curr_pos += 2;
+      if (curr_pos == pLength) {
+        pp.SetSpeed(0, 0);
+        break;
+      }
+      finding_angle = 1;
+      arrived = 0;
+    } else if (started) {
+      started = 0;
+      turnrate = 0;
+      speed = 0;
+      finding_angle = 1;
+    }
+    // If bumped, start backing up
+    if (bp[0] || bp[1] || pp.GetStall()) {
+      if (bp[0]) turn_sign = -1;
+      if (bp[1]) turn_sign = 1;
+      turnrate = 0.4 * turn_sign;
+      bumped = 1;
+    }
+    // What are we doing?
+    std::cout << "Speed: " << speed << std::endl;      
+    std::cout << "Turn rate: " << turnrate << std::endl << std::endl;
+
+    // Send the commands to the robot
+    pp.SetSpeed(speed, turnrate);  
+  }
 } // end of main()
 
 /**
