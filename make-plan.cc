@@ -34,7 +34,7 @@ const int SIZE = 32; // The number of squares per side of the occupancy grid
  *
  **/
 
-void fillMap(int maptext[][32]);
+// void fillMap(int maptext[][32]);
 Node* findPath(int path[256][2], int map[32][32], int init[], int goal[]);
 double manhattanDistance(int x1, int y1, int x2, int y2);
 void mapOut(int maptext[][32]);
@@ -62,19 +62,6 @@ void writePlan(double *, int);
 
 int main(int argc, char *argv[])
 {  
-  int map[32][32];
-  int start[] = {-12, -12};
-  int end[] = {13, 13};
-  int path[256][2];
-  int pathlength;
-
-  fillMap(map);
-  Node *node = findPath(path, map, start, end);
-  createPath(map, node, path, pathlength);
-  mapOut(map);
-  truncatePath(path, pathlength);
-  pathOut(path, pathlength);
-
   // Variables
   int counter = 0;
   double speed;            // How fast do we want the robot to go forwards?
@@ -84,6 +71,8 @@ int main(int argc, char *argv[])
   // The occupancy grid
 
   int oGrid[SIZE][SIZE];
+  int path[256][2];
+  int pathlength;
 
   // The set of coordinates that makes up the plan
 
@@ -109,7 +98,16 @@ int main(int argc, char *argv[])
   // free space.
   readMap(oGrid);   // Read a map in from the file map.txt
   printMap(oGrid);  // Print the map on the screen
-  writeMap(oGrid);  // Write a map out to the file map-out.txt
+  // writeMap(oGrid);  // Write a map out to the file map-out.txt
+
+  int start[] = {-12, -12};
+  int end[] = {13, 13};
+  Node *node = findPath(path, oGrid, start, end);
+  createPath(oGrid, node, path, pathlength);
+  mapOut(oGrid);
+  truncatePath(path, pathlength);
+  pathOut(path, pathlength);
+
 
   // Plan handling
   // 
@@ -125,7 +123,7 @@ int main(int argc, char *argv[])
   printPlan(plan,pLength);    // Print the plan on the screen
   writePlan(plan, pLength);   // Write the plan to the file plan-out.txt
 
-
+  
   // Main control loop
   while(true) 
     {    
@@ -417,7 +415,12 @@ void writePlan(double *plan , int length)
     planFile << plan[i] << " ";
   }
 
-  planFile.close();void pathOut(int path[][2], int pathlength) {
+  planFile.close();
+}
+
+// Creates a proper plan
+
+void pathOut(int path[][2], int pathlength) {
   std::ofstream os;
   os.open("plan-out.txt");
   os << pathlength << " ";
@@ -425,6 +428,8 @@ void writePlan(double *plan , int length)
     os << (double)path[i][0]/2 << " " << (double)path[i][1]/2 << (i == pathlength-1 ? "" : " ");
   }
 }
+
+// Truncates the plan reduces waypoints if the slope is common between a set of points.
 
 void truncatePath(int path[][2], int &pathlength) {
   int lt = 0, rt = 1;
@@ -448,11 +453,15 @@ void truncatePath(int path[][2], int &pathlength) {
   pathlength = lt+1;
 }
 
+// Helper function for plan truncation
+
 void swapPathNode(int path[][2], int i, int j) {
   int tmpx = path[i][0]; int tmpy = path[i][1];
   path[i][0] = path[j][0]; path[i][1] = path[j][1];
   path[j][0] = tmpx; path[j][1] = tmpy;
 }
+
+// Outputs map file with path indication
 
 void mapOut(int map[][32]) {
   std::ofstream ofs;
@@ -464,6 +473,8 @@ void mapOut(int map[][32]) {
     if (i < 31) ofs << std::endl;
   }
 }
+
+// Creates a path by backtracking through nodes
 
 void createPath(int map[][32], Node *curr, int path[][2], int &pathlength) {
   int pl = 0;
@@ -479,6 +490,8 @@ void createPath(int map[][32], Node *curr, int path[][2], int &pathlength) {
   }
   pathlength = pl;
 }
+
+// Finds the optimal path produced by A* search
 
 Node* findPath(int path[256][2], int map[32][32], int start[], int end[]) {
   int d[8][2] = {{-1,-1},{0,-1},{1,-1},{0,-1},{0,1},{1,-1},{1,0},{1,1}};
@@ -508,35 +521,13 @@ Node* findPath(int path[256][2], int map[32][32], int start[], int end[]) {
   return NULL;
 }
 
+// Heuristic used for A* search
+
 double manhattanDistance(int x1, int y1, int x2, int y2) {
   double dx, dy;
   dx = abs(x2 - x1);
   dy = abs(y2 - y1);
   return dx+dy;
 }
-
-void fillMap(int maptext[][32]) {
-  int row = 0, col = 0, iter = 0;
-  std::ifstream is;
-  is.open("map.txt");
-  std::string line;
-  while (!is.eof()) {
-    getline(is, line);
-    col = 0;
-    iter = 0;
-    while (line[iter] != '\0') {
-      if (line[iter] == '0' || line[iter] == '1') {
-        maptext[row][col] = line[iter] - '0';
-        col++;
-      }
-      iter++;
-    }
-    row++;
-  }
-  is.close();
-}
-
-
-} // End of writePlan
 
 
